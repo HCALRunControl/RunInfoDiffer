@@ -1,2 +1,4 @@
+#fields to be diffed by Run_Info_Differ
+#parameter:whitespace seperated list of prefixes
 HCAL_CFGSCRIPT:HCAL_HBHEa HCAL_LEVEL_1 HCAL_LASER HCAL_HBHEb HCAL_HO HCAL_HBHEc HCAL_HF 
 CFGDOC_TXT:HCAL_HBHEa HCAL_HBHEb HCAL_HBHEc HCAL_LASER HCAL_HO HCAL_HF 

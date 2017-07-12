@@ -17,18 +17,20 @@ cur = connection.cursor()
  
 fields = []
  
+database = "cms_hcl_test_runinfo/%s@cms_orcoff_prep" % password
 parameters_file = open("diffed_parameters.txt","r")
 for line in parameters_file:
-    categories = line.split(":")
-    prefixes = categories[1].split(" ")
-    for elem in prefixes:
-        if elem != "\n":
+    if line[0] != "#":
+        categories = line.split(":")
+        prefixes = categories[1].split("\n")[0].split(" ")
+        for elem in prefixes:
+            #if elem != "\n":
             field = 'CMS.' + elem + ':' + categories[0]
             fields.append(field)
 
 parameters_file.close()
+print(fields)
 
- 
 def get_fields(runum):
     query_return_values = {}
     for field in fields:
