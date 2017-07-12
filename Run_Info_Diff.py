@@ -10,7 +10,6 @@ G  = '\033[32m' # green
 
 
 password = raw_input("database password:")
-database = "cms_hcl_test_runinfo/%s@cms_orcoff_prep" % password
  
 database = "cms_hcl_test_runinfo/%s@cms_orcoff_prep" % password
 connection = cx_Oracle.connect(database)
