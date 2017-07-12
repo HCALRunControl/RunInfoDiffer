@@ -16,16 +16,19 @@ database = "cms_hcl_test_runinfo/%s@cms_orcoff_prep" % password
 connection = cx_Oracle.connect(database)
 cur = connection.cursor()
  
-fields = ['CMS.HCAL_HBHEa:HCAL_CFGSCRIPT','CMS.HCAL_LEVEL_1:HCAL_CFGSCRIPT','CMS.HCAL_LASER:HCAL_CFGSCRIPT','CMS.HCAL_HBHEb:HCAL_CFGSCRIPT','CMS.HCAL_HO:HCAL_CFGSCRIPT','CMS.HCAL_HBHEc:HCAL_CFGSCRIPT','CMS.HCAL_HF:HCAL_CFGSCRIPT','CMS.HCAL_HBHEa:CFGDOC_TXT','CMS.HCAL_HBHEb:CFGDOC_TXT','CMS.HCAL_HBHEc:CFGDOC_TXT','CMS.HCAL_LASER:CFGDOC_TXT','CMS.HCAL_HO:CFGDOC_TXT','CMS.HF:CFGDOC_TXT']
-
+fields = []
  
-#parameters_file = open("diffed_parmeters.txt","r")
-#for line in parameters_file:
-    #parse line to get prefixs
-    #loop over prefixes and format parameters
-    #add parameters to fields[]
+parameters_file = open("diffed_parameters.txt","r")
+for line in parameters_file:
+    categories = line.split(":")
+    prefixes = categories[1].split(" ")
+    for elem in prefixes:
+        if elem != "\n":
+            field = 'CMS.' + elem + ':' + categories[0]
+            fields.append(field)
 
-#parameters_file.close()
+parameters_file.close()
+
  
 def get_fields(runum):
     query_return_values = {}
