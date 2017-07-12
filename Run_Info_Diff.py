@@ -9,15 +9,8 @@ R  = '\033[31m' # red
 G  = '\033[32m' # green
 
 
-password = raw_input("database password:")
- 
-database = "cms_hcl_test_runinfo/%s@cms_orcoff_prep" % password
-connection = cx_Oracle.connect(database)
-cur = connection.cursor()
- 
 fields = []
  
-database = "cms_hcl_test_runinfo/%s@cms_orcoff_prep" % password
 parameters_file = open("diffed_parameters.txt","r")
 for line in parameters_file:
     if line[0] != "#":
@@ -28,7 +21,12 @@ for line in parameters_file:
             fields.append(field)
 
 parameters_file.close()
-print(fields)
+
+password = raw_input("database password:")
+
+database = "cms_hcl_test_runinfo/%s@cms_orcoff_prep" % password
+connection = cx_Oracle.connect(database)
+cur = connection.cursor()
 
 def get_fields(runum):
     query_return_values = {}
