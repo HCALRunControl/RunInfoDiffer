@@ -24,7 +24,6 @@ for line in parameters_file:
         categories = line.split(":")
         prefixes = categories[1].split("\n")[0].split(" ")
         for elem in prefixes:
-            #if elem != "\n":
             field = 'CMS.' + elem + ':' + categories[0]
             fields.append(field)
 
