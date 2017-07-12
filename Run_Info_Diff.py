@@ -88,8 +88,9 @@ try:
                 previous_parameter_values.clear()
                 previous_parameter_values.update(new_parameter_values)
         time.sleep(10)
-except Exception as e:
+except BaseException as e:
     logging.exception(e)
 
-cur.close()
-connection.close()
+finally:
+    cur.close()
+    connection.close()
