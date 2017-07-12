@@ -70,15 +70,29 @@ def color_print(parameter, message):
         elif line[0] == "-":
             print(R+line+W)
 
-try:
+def get_global_runnumber():
     cur.execute('SELECT MAX(RUNNUMBER) FROM RUNSESSION_PARAMETER')
-    previous_runnumber = cur.fetchall()[0][0]
+    runum = cur.fetchall()[0][0]
+    is_global = False
+    while is_global == False:
+        SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id=(SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\'CMS.HCAL_LEVEL_1:FM_FULLPATH\'))'
+        cur.execute(SQL)
+        parameter_value = cur.fetchall()
+        if parameter_value != []:
+            path = parameter_value[0][0].read()
+            print path
+            if "/hcalpro/Global/" in path:
+                is_global = True
+        runum -= 1
+    return runum
+
+try:
+    previous_runnumber = get_global_runnumber()
     previous_parameter_values = get_fields(previous_runnumber)
     count = 0
     while count < 5:
         count += 1
-        cur.execute('SELECT MAX(RUNNUMBER) FROM RUNSESSION_PARAMETER')
-        recent_runnumber = cur.fetchall()[0][0]
+        recent_runnumber = get_global_runnumber()
         if recent_runnumber != previous_runnumber:
             new_parameter_values = get_fields(recent_runnumber)
             difference = runinfo_differ(previous_parameter_values, new_parameter_values)
