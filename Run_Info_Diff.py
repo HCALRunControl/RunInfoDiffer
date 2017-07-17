@@ -65,15 +65,28 @@ def runinfo_differ(old_parameters, new_parameters):
                 new_string = str(new_parameters[key]).strip().splitlines()
                 d=difflib.Differ()
                 changes = list(d.compare(old_string, new_string))
-                for line in list(changes):
-                    if line[0] != "+" and line[0] != "-":
-                        changes.remove(line)
-                changed_parameters.setdefault(tuple(changes), []).append(key)
+                diff_with_context = trim_changes(changes)
+                changed_parameters.setdefault(tuple(diff_with_context), []).append(key)
 
         for key in changed_parameters:
-            if len(changes)!=0:
+            if len(diff_with_context)!=0:
                 color_print(", ".join(changed_parameters[key]), list(key))
         return True
+
+def trim_changes(changes):
+    trimmed = []
+    for elem in changes:
+        if elem[0]=="+" or elem[0]=="-" or ("{" in elem):
+            trimmed.append(elem)
+    context_diff = []
+    for i in range(0,len(trimmed)):
+        elem = trimmed[i]
+        if elem[0] == "+" or elem[0] == "-":
+            context_diff.append(trimmed[i])
+        elif elem[0]==" " and ("{" in elem) and (i<len(trimmed)-1):
+                if trimmed[i+1][0]!=" ":
+                    context_diff.append(trimmed[i])
+    return context_diff
 
 def color_print(parameter, message):
     print(parameter + ' changed:\n')
@@ -84,6 +97,8 @@ def color_print(parameter, message):
             print(G+line+W)
         elif line[0] == "-":
             print(R+line+W)
+        elif line[0] == " ":
+            print(line)
         if (i == number_of_lines-1):
             break
 
