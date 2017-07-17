@@ -52,6 +52,7 @@ def get_fields(runum):
     return query_return_values
 
 def runinfo_differ(old_parameters, new_parameters):
+    changed_parameters = {}
     if old_parameters==new_parameters:
         return False
     else:
@@ -62,19 +63,29 @@ def runinfo_differ(old_parameters, new_parameters):
             else:
                 old_string = str(old_parameters[key]).strip().splitlines()
                 new_string = str(new_parameters[key]).strip().splitlines()
-                d = difflib.Differ()
+                d=difflib.Differ()
                 changes = list(d.compare(old_string, new_string))
-                if len(changes)!=0:
-                    color_print(key, changes)
+                for line in list(changes):
+                    if line[0] != "+" and line[0] != "-":
+                        changes.remove(line)
+                changed_parameters.setdefault(tuple(changes), []).append(key)
+
+        for key in changed_parameters:
+            if len(changes)!=0:
+                color_print(", ".join(changed_parameters[key]), list(key))
         return True
 
 def color_print(parameter, message):
     print(parameter + ' changed:\n')
-    for line in message:
+    number_of_lines = len(message)
+    for i in range(0,10):
+        line = message[i]
         if line[0] == "+":
             print(G+line+W)
         elif line[0] == "-":
             print(R+line+W)
+        if (i == number_of_lines-1):
+            break
 
 def get_global_runnumber():
     cur.execute('SELECT MAX(RUNNUMBER) FROM RUNSESSION_PARAMETER')
@@ -90,7 +101,6 @@ def get_global_runnumber():
             if "/hcalpro/Global/" in path:
                 is_global = True
         runum -= 1
-    print runum + 1
     return runum + 1
 
 try:
@@ -109,7 +119,7 @@ try:
         time.sleep(60)
 except BaseException as e:
     logging.exception(e)
-
+    
 finally:
     cur.close()
     connection.close()
