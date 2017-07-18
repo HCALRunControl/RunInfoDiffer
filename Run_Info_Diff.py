@@ -1,9 +1,21 @@
+#!/var/bin/python 
+
+import cgi
+import cgitb
+
 import cx_Oracle
 import logging
 import time
 import difflib
+import os
 from operator import itemgetter
  
+run_method =""
+if 'REQUEST_METHOD' in os.environ:
+    run_method = "remote_run"
+else:
+    run_method = "local_run"
+
 
 W  = '\033[0m'  # white (normal)
 R  = '\033[31m' # red
@@ -118,7 +130,7 @@ def get_global_runnumber():
         runum -= 1
     return runum + 1
 
-try:
+def local_execute():
     previous_runnumber = get_global_runnumber()
     previous_parameter_values = get_fields(previous_runnumber)
     count = 0
@@ -132,6 +144,27 @@ try:
                 previous_parameter_values.clear()
                 previous_parameter_values.update(new_parameter_values)
         time.sleep(60)
+
+def remote_execute():
+    form = cgi.FieldStorage()
+    
+    runnumber_1 = form.getvalue('runnumber1')
+    runnumber_2 = form.getvalue('runnumber2')
+    
+    print "Content-type:text/html\r\n\r\n"
+    print "<html>"
+    print "<head>"
+    print "<title>Run Info Diff</title>"
+    print "</head>"
+    print "<body>"
+    runinfo_differ(get_fields(runnumber_1), get_fields(runnumber_2))
+    print "</body>"
+    print "</html>"
+try:
+    if run_method == "local_run":
+        local_execute()
+    elif run_method == "remote_run":
+        remote_execute()
 except BaseException as e:
     logging.exception(e)
     
