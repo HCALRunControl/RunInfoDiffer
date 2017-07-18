@@ -1,4 +1,5 @@
 #!/var/bin/python 
+import sys
 
 import cgi
 import cgitb
@@ -10,17 +11,12 @@ import difflib
 import os
 from operator import itemgetter
  
-run_method =""
-if 'REQUEST_METHOD' in os.environ:
-    run_method = "remote_run"
-else:
-    run_method = "local_run"
-
 
 W  = '\033[0m'  # white (normal)
 R  = '\033[31m' # red
 G  = '\033[32m' # green
 
+has_changed = False
 
 fields = []
  
@@ -37,11 +33,6 @@ for line in parameters_file:
 parameters_file.close()
 
 
-password = raw_input("database password:")
-
-database = "cms_hcl_runinfo/%s@cms_rcms" % password
-connection = cx_Oracle.connect(database)
-cur = connection.cursor()
 
 def get_fields(runum):
     query_return_values = {}
@@ -66,7 +57,8 @@ def get_fields(runum):
 def runinfo_differ(old_parameters, new_parameters):
     changed_parameters = {}
     if old_parameters==new_parameters:
-        return False
+        has_changed = False
+        return
     else:
         message = ""   
         for key in old_parameters:
@@ -79,11 +71,12 @@ def runinfo_differ(old_parameters, new_parameters):
                 changes = list(d.compare(old_string, new_string))
                 diff_with_context = trim_changes(changes)
                 changed_parameters.setdefault(tuple(diff_with_context), []).append(key)
-
+        final_diff = ""
         for key in changed_parameters:
             if len(diff_with_context)!=0:
-                color_print(", ".join(changed_parameters[key]), list(key))
-        return True
+                final_diff += color_print(", ".join(changed_parameters[key]), list(key))
+        has_changed = True
+        return final_diff
 
 def trim_changes(changes):
     trimmed = []
@@ -101,18 +94,23 @@ def trim_changes(changes):
     return context_diff
 
 def color_print(parameter, message):
+    diff_value = ""
     print(parameter + ' changed:\n')
     number_of_lines = len(message)
     for i in range(0,10):
         line = message[i]
         if line[0] == "+":
             print(G+line+W)
+            diff_value += line
         elif line[0] == "-":
             print(R+line+W)
+            diff_value += line
         elif line[0] == " ":
             print(line)
+            diff_value += line
         if (i == number_of_lines-1):
             break
+    return diff_value
 
 def get_global_runnumber():
     cur.execute('SELECT MAX(RUNNUMBER) FROM RUNSESSION_PARAMETER')
@@ -139,35 +137,50 @@ def local_execute():
         recent_runnumber = get_global_runnumber()
         if recent_runnumber != previous_runnumber:
             new_parameter_values = get_fields(recent_runnumber)
-            difference = runinfo_differ(previous_parameter_values, new_parameter_values)
-            if difference:
+            runinfo_differ(previous_parameter_values, new_parameter_values)
+            if has_changed:
                 previous_parameter_values.clear()
                 previous_parameter_values.update(new_parameter_values)
         time.sleep(60)
 
-def remote_execute():
-    form = cgi.FieldStorage()
+def remote_execute(runnumber_1, runnumber_2):
+    return runinfo_differ(get_fields(runnumber_1), get_fields(runnumber_2))
+
+def main(argv):
+    try:
+        password = raw_input("database password:")
+        database = "cms_hcl_runinfo/%s@cms_rcms" % password
+        connection = cx_Oracle.connect(database)
+        global cur
+        cur = connection.cursor()    
+        run_method = argv[0]
+        if run_method == "local_run":
+            local_execute()
+        elif run_method == "remote_run":
+            runnum1 = argv[1]
+            runnum2 = argv[2]
+            return remote_execute(runnum1, runnum2)
+    except BaseException as e:
+        logging.exception(e)
     
-    runnumber_1 = form.getvalue('runnumber1')
-    runnumber_2 = form.getvalue('runnumber2')
-    
-    print "Content-type:text/html\r\n\r\n"
-    print "<html>"
-    print "<head>"
-    print "<title>Run Info Diff</title>"
-    print "</head>"
-    print "<body>"
-    runinfo_differ(get_fields(runnumber_1), get_fields(runnumber_2))
-    print "</body>"
-    print "</html>"
-try:
-    if run_method == "local_run":
-        local_execute()
-    elif run_method == "remote_run":
-        remote_execute()
-except BaseException as e:
-    logging.exception(e)
-    
-finally:
-    cur.close()
-    connection.close()
+    finally:
+        cur.close()
+        connection.close()
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
