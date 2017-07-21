@@ -24,10 +24,11 @@ parameters_file = open("diffed_parameters.txt","r")
 for line in parameters_file:
     if line[0] != "#":
         categories = line.split(":")
+	parameter = categories[0].split(" ")[0]
         prefixes = categories[1].split("\n")[0].split(" ")
         for elem in prefixes:
             if elem != "":
-                field = 'CMS.' + elem + ':' + categories[0]
+                field = 'CMS.' + elem + ':' + parameter
                 fields.append(field)
 
 parameters_file.close()
@@ -73,15 +74,19 @@ def runinfo_differ(old_parameters, new_parameters):
                 changed_parameters.setdefault(tuple(diff_with_context), []).append(key)
         final_diff = ""
         for key in changed_parameters:
-            if len(diff_with_context)!=0:
-                final_diff += color_print(", ".join(changed_parameters[key]), list(key))
+	    split_by_parameter = {}
+            for value in changed_parameters[key]:
+		split_by_parameter.setdefault(value.split(":")[1], []).append(value)
+	    for parameter in split_by_parameter:
+                if len(diff_with_context)!=0:
+                    final_diff += color_print(", ".join(split_by_parameter[parameter]), list(key))
         has_changed = True
         return final_diff
 
 def trim_changes(changes):
     trimmed = []
     for elem in changes:
-        if elem[0]=="+" or elem[0]=="-" or ("{" in elem):
+        if elem[0]=="+" or elem[0]=="-" or ("{" in elem and "}" not in elem):
             trimmed.append(elem)
     context_diff = []
     for i in range(0,len(trimmed)):
@@ -89,26 +94,30 @@ def trim_changes(changes):
         if elem[0] == "+" or elem[0] == "-":
             context_diff.append(trimmed[i])
         elif elem[0]==" " and ("{" in elem) and (i<len(trimmed)-1):
-                if trimmed[i+1][0]!=" ":
+                if trimmed[i+1][0]!=" " and "#" not in trimmed[i+1]:
                     context_diff.append(trimmed[i])
     return context_diff
 
 def color_print(parameter, message):
     diff_value = ""
-    print(parameter + ' changed:\n')
+    #print(parameter + ' changed:\n')
+    diff_value += parameter + ' changed:\n'
     number_of_lines = len(message)
     for i in range(0,10):
         line = message[i]
         if line[0] == "+":
-            print(G+line+W)
-            diff_value += line
+            #print(G+line+W)
+            diff_value += line+"\n"
         elif line[0] == "-":
-            print(R+line+W)
-            diff_value += line
+            #print(R+line+W)
+            diff_value += line+"\n"
         elif line[0] == " ":
-            print(line)
-            diff_value += line
-        if (i == number_of_lines-1):
+            #print(line)
+            diff_value += line+"\n"
+	if (i == 9  and number_of_lines > 10):
+            #print "diff truncated for clarity"
+            diff_value += "diff truncated for clarity\n"
+        elif (i == number_of_lines-1):
             break
     return diff_value
 
@@ -148,14 +157,16 @@ def remote_execute(runnumber_1, runnumber_2):
 
 def main(argv):
     try:
-        password = raw_input("database password:")
+	password_file = open("database_pwd","r")
+        password = password_file.readline().split("\n")[0]
+	password_file.close()
         database = "cms_hcl_runinfo/%s@cms_rcms" % password
         connection = cx_Oracle.connect(database)
         global cur
         cur = connection.cursor()    
         run_method = argv[0]
         if run_method == "local_run":
-            local_execute()
+            return local_execute()
         elif run_method == "remote_run":
             runnum1 = argv[1]
             runnum2 = argv[2]

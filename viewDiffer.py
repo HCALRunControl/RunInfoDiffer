@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import cgi
 import cgitb; cgitb.enable()
 import Run_Info_Diff
@@ -11,9 +13,11 @@ def getHeader():
             <html>
                 <head>
                     <title>Runinfo Diff</title>
+		    <link rel="stylesheet" type="text/css" href="runinfodiffer.css"> 
                 </head>
                 <body>
             """
+    return header
 
 
 
@@ -25,21 +29,33 @@ def getFooter():
        """
   return footer
 
-form =cgi.FieldStorage()
+
+form = cgi.FieldStorage()
 
 runnumber1 = form.getvalue('runnumber1')
 runnumber2 = form.getvalue('runnumber2')
 
-body = main("remote_run", runnumber1, runnumber2).split("\n")
+body = Run_Info_Diff.main(["remote_run", runnumber1, runnumber2])
+if body is not None:
+    body_list=body.split("\n")
+else:
+    body_list = ["Diff was empty, all queried parameters are unchanged"]
 
+print "Content-type: text/html\n\n"
 print getHeader()
-for line in body:
-    if line[0] == "+":
-        print(G+line+W)
+print "<span style=\"font-size:250%;\">Diff of run " + str(runnumber1) + " and run " + str(runnumber2) + "</span><br><br>"
+for line in body_list:
+    if line == "":
+        continue
+    elif line[0] == "+":
+        print "<span style=\"color:green;\">"+line+"</span>"+"<br>"
     elif line[0] == "-":
-        print(R+line+W)
-    elif line[0] == " ":
-        print(line) 
+        print "<span style=\"color:red;\">"+line+"</span>"+"<br>"
+    else:
+        if line == "diff truncated for clarity":
+	    print line+"<br><br>"
+	else:
+	    print line+"<br>" 
 
 print getFooter()
 
