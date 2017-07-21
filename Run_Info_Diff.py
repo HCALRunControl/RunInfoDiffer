@@ -79,7 +79,7 @@ def runinfo_differ(old_parameters, new_parameters):
 		split_by_parameter.setdefault(value.split(":")[1], []).append(value)
 	    for parameter in split_by_parameter:
                 if len(diff_with_context)!=0:
-                    final_diff += color_print(", ".join(split_by_parameter[parameter]), list(key))
+                    final_diff += color_print(parameter + " in " + ", ".join(list(map(lambda x: x.split(":")[0].split(".")[1], split_by_parameter[parameter]))), list(key))
         has_changed = True
         return final_diff
 
@@ -101,7 +101,7 @@ def trim_changes(changes):
 def color_print(parameter, message):
     diff_value = ""
     #print(parameter + ' changed:\n')
-    diff_value += parameter + ' changed:\n'
+    diff_value += parameter + ' has changed:\n'
     number_of_lines = len(message)
     for i in range(0,10):
         line = message[i]
