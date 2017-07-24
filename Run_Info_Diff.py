@@ -19,7 +19,8 @@ G  = '\033[32m' # green
 has_changed = False
 
 fields = []
- 
+
+#get parameters from file and add them to a list 
 parameters_file = open("diffed_parameters.txt","r")
 for line in parameters_file:
     if line[0] != "#":
@@ -34,7 +35,7 @@ for line in parameters_file:
 parameters_file.close()
 
 
-
+#query runinfo db to get value of all specified parameters
 def get_fields(runum):
     query_return_values = {}
     for field in fields:
@@ -55,6 +56,7 @@ def get_fields(runum):
             print e
     return query_return_values
 
+#compare sets of values to  get diff between them
 def runinfo_differ(old_parameters, new_parameters):
     changed_parameters = {}
     if old_parameters==new_parameters:
@@ -68,27 +70,35 @@ def runinfo_differ(old_parameters, new_parameters):
             else:
                 old_string = str(old_parameters[key]).strip().splitlines()
                 new_string = str(new_parameters[key]).strip().splitlines()
-                d=difflib.Differ()
+                #get diff between two strings
+		d=difflib.Differ()
                 changes = list(d.compare(old_string, new_string))
+		#extract relevant lines for message from diff
                 diff_with_context = trim_changes(changes)
-                changed_parameters.setdefault(tuple(diff_with_context), []).append(key)
+		#condense diff so that identical diffs are reported together
+                changed_parameters.setdefault(tuple(diff_with_context), []).append(key) 
         final_diff = ""
         for key in changed_parameters:
+	    #split condensed diff by parameter (same parameter in different partitions stay together)
 	    split_by_parameter = {}
             for value in changed_parameters[key]:
 		split_by_parameter.setdefault(value.split(":")[1], []).append(value)
+	    #get final message
 	    for parameter in split_by_parameter:
                 if len(diff_with_context)!=0:
                     final_diff += color_print(parameter + " in " + ", ".join(list(map(lambda x: x.split(":")[0].split(".")[1], split_by_parameter[parameter]))), list(key))
         has_changed = True
         return final_diff
 
+#remove excess lines that appear in origional diff
 def trim_changes(changes):
     trimmed = []
+    #remove all lines are not changed or possible context
     for elem in changes:
         if elem[0]=="+" or elem[0]=="-" or ("{" in elem and "}" not in elem):
             trimmed.append(elem)
     context_diff = []
+    #remove excess possible context so only context around changed line remains
     for i in range(0,len(trimmed)):
         elem = trimmed[i]
         if elem[0] == "+" or elem[0] == "-":
@@ -98,6 +108,7 @@ def trim_changes(changes):
                     context_diff.append(trimmed[i])
     return context_diff
 
+#format message
 def color_print(parameter, message):
     diff_value = ""
     #print(parameter + ' changed:\n')
@@ -121,10 +132,12 @@ def color_print(parameter, message):
             break
     return diff_value
 
+#search for most recent global runnumber
 def get_global_runnumber():
     cur.execute('SELECT MAX(RUNNUMBER) FROM RUNSESSION_PARAMETER')
     runum = cur.fetchall()[0][0]
     is_global = False
+    #loop backwards through runs until global run is found
     while is_global == False:
         SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\'CMS.HCAL_LEVEL_1:FM_FULLPATH\'))'
         cur.execute(SQL)
@@ -137,6 +150,7 @@ def get_global_runnumber():
         runum -= 1
     return runum + 1
 
+#main run loop for automatic alarmer
 def local_execute():
     previous_runnumber = get_global_runnumber()
     previous_parameter_values = get_fields(previous_runnumber)
@@ -152,9 +166,11 @@ def local_execute():
                 previous_parameter_values.update(new_parameter_values)
         time.sleep(60)
 
+#run for web interface
 def remote_execute(runnumber_1, runnumber_2):
     return runinfo_differ(get_fields(runnumber_1), get_fields(runnumber_2))
 
+#control database conection and decide on run mode
 def main(argv):
     try:
 	password_file = open("database_pwd","r")
