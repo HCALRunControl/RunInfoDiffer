@@ -10,7 +10,7 @@ import time
 import difflib
 import os
 from operator import itemgetter
- 
+import subprocess 
 
 W  = '\033[0m'  # white (normal)
 R  = '\033[31m' # red
@@ -25,12 +25,13 @@ parameters_file = open("diffed_parameters.txt","r")
 for line in parameters_file:
     if line[0] != "#":
         categories = line.split(":")
-	parameter = categories[0].split(" ")[0]
-        prefixes = categories[1].split("\n")[0].split(" ")
-        for elem in prefixes:
-            if elem != "":
-                field = 'CMS.' + elem + ':' + parameter
-                fields.append(field)
+	if len(categories) > 1:
+	    parameter = categories[0].split(" ")[0]
+            prefixes = categories[1].split("\n")[0].split(" ")
+            for elem in prefixes:
+                if elem != "":
+                    field = 'CMS.' + elem + ':' + parameter
+                    fields.append(field)
 
 parameters_file.close()
 
@@ -58,6 +59,7 @@ def get_fields(runum):
 
 #compare sets of values to  get diff between them
 def runinfo_differ(old_parameters, new_parameters):
+    global has_changed
     changed_parameters = {}
     if old_parameters==new_parameters:
         has_changed = False
@@ -111,19 +113,19 @@ def trim_changes(changes):
 #format message
 def color_print(parameter, message):
     diff_value = ""
-    #print(parameter + ' changed:\n')
+    print(parameter + ' changed:\n')
     diff_value += parameter + ' has changed:\n'
     number_of_lines = len(message)
     for i in range(0,10):
         line = message[i]
         if line[0] == "+":
-            #print(G+line+W)
+            print(G+line+W)
             diff_value += line+"\n"
         elif line[0] == "-":
-            #print(R+line+W)
+            print(R+line+W)
             diff_value += line+"\n"
         elif line[0] == " ":
-            #print(line)
+            print(line)
             diff_value += line+"\n"
 	if (i == 9  and number_of_lines > 10):
             #print "diff truncated for clarity"
@@ -150,18 +152,25 @@ def get_global_runnumber():
         runum -= 1
     return runum + 1
 
+def send_notification(message):
+    subprocess.call(["./mailOut.pl", "ciaran_godfrey", "Run Parameters Changed", message])
+
 #main run loop for automatic alarmer
 def local_execute():
-    previous_runnumber = get_global_runnumber()
+    #previous_runnumber = get_global_runnumber()
+    previous_runnumber = 299020
     previous_parameter_values = get_fields(previous_runnumber)
     count = 0
     while count < 10:
         count += 1
-        recent_runnumber = get_global_runnumber()
-        if recent_runnumber != previous_runnumber:
+        #recent_runnumber = get_global_runnumber()
+        recent_runnumber = 299025
+	if recent_runnumber != previous_runnumber:
             new_parameter_values = get_fields(recent_runnumber)
-            runinfo_differ(previous_parameter_values, new_parameter_values)
-            if has_changed:
+            difference = runinfo_differ(previous_parameter_values, new_parameter_values)
+	    difference += "\n http://hcalmon.cms/cgi-bin/RunInfoDiffer/viewDiffer.py?runnumber1="+str(previous_runnumber)+"&runnumber2="+str(recent_runnumber)
+	    if has_changed:
+		send_notification(difference)
                 previous_parameter_values.clear()
                 previous_parameter_values.update(new_parameter_values)
         time.sleep(60)
