@@ -157,14 +157,12 @@ def send_notification(message):
 
 #main run loop for automatic alarmer
 def local_execute():
-    #previous_runnumber = get_global_runnumber()
-    previous_runnumber = 299020
+    previous_runnumber = get_global_runnumber()
     previous_parameter_values = get_fields(previous_runnumber)
     count = 0
     while count < 10:
         count += 1
-        #recent_runnumber = get_global_runnumber()
-        recent_runnumber = 299025
+        recent_runnumber = get_global_runnumber()
 	if recent_runnumber != previous_runnumber:
             new_parameter_values = get_fields(recent_runnumber)
             difference = runinfo_differ(previous_parameter_values, new_parameter_values)
