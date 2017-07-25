@@ -88,7 +88,7 @@ def runinfo_differ(old_parameters, new_parameters):
 	    #get final message
 	    for parameter in split_by_parameter:
                 if len(diff_with_context)!=0:
-                    final_diff += color_print(parameter + " in " + ", ".join(list(map(lambda x: x.split(":")[0].split(".")[1], split_by_parameter[parameter]))), list(key))
+                    final_diff += format_diff(parameter + " in " + ", ".join(list(map(lambda x: x.split(":")[0].split(".")[1], split_by_parameter[parameter]))), list(key))
         has_changed = True
         return final_diff
 
@@ -111,21 +111,21 @@ def trim_changes(changes):
     return context_diff
 
 #format message
-def color_print(parameter, message):
+def format_diff(parameter, message):
     diff_value = ""
-    print(parameter + ' changed:\n')
+    #print(parameter + ' changed:\n')
     diff_value += parameter + ' has changed:\n'
     number_of_lines = len(message)
     for i in range(0,10):
         line = message[i]
         if line[0] == "+":
-            print(G+line+W)
+            #print(G+line+W)
             diff_value += line+"\n"
         elif line[0] == "-":
-            print(R+line+W)
+            #print(R+line+W)
             diff_value += line+"\n"
         elif line[0] == " ":
-            print(line)
+            #print(line)
             diff_value += line+"\n"
 	if (i == 9  and number_of_lines > 10):
             #print "diff truncated for clarity"
