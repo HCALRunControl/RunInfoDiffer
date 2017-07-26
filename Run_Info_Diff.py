@@ -157,18 +157,25 @@ def send_notification(message):
 
 #main run loop for automatic alarmer
 def local_execute():
-    previous_runnumber = get_global_runnumber()
+    #previous_runnumber = get_global_runnumber()
+    previous_runnumber = 299020
     previous_parameter_values = get_fields(previous_runnumber)
     count = 0
     while count < 10:
         count += 1
-        recent_runnumber = get_global_runnumber()
+        #recent_runnumber = get_global_runnumber()
+	recent_runnumber = 299025
 	if recent_runnumber != previous_runnumber:
             new_parameter_values = get_fields(recent_runnumber)
-            difference = runinfo_differ(previous_parameter_values, new_parameter_values)
-	    difference += "\n http://hcalmon.cms/cgi-bin/RunInfoDiffer/viewDiffer.py?runnumber1="+str(previous_runnumber)+"&runnumber2="+str(recent_runnumber)
+	    difference = runinfo_differ(previous_parameter_values, new_parameter_values)
 	    if has_changed:
+		url = "http://hcalmon.cms/cgi-bin/RunInfoDiffer/viewDiffer.py?runnumber1="+str(previous_runnumber)+"&runnumber2="+str(recent_runnumber)
+		difference = "For colored message follow link at bottom of page \n\n"+ difference
+                difference += "\n" + url
 		send_notification(difference)
+		log = open("BotUrlLog.txt","a")
+		log.write("\n"+url)
+		log.close()
                 previous_parameter_values.clear()
                 previous_parameter_values.update(new_parameter_values)
         time.sleep(60)
