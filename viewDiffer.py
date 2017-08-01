@@ -12,8 +12,7 @@ def getHeader():
     header = """
             <html>
                 <head>
-                    <title>Runinfo Diff</title>
-		    <link rel="stylesheet" type="text/css" href="runinfodiffer.css"> 
+                    <title>Runinfo Diff</title> 
                 </head>
                 <body>
             """

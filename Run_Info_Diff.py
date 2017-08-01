@@ -63,7 +63,7 @@ def runinfo_differ(old_parameters, new_parameters):
     changed_parameters = {}
     if old_parameters==new_parameters:
         has_changed = False
-        return
+        return None
     else:
         message = ""   
         for key in old_parameters:
@@ -138,7 +138,7 @@ def format_diff(parameter, message):
 def get_global_runnumber():
     cur.execute('SELECT MAX(RUNNUMBER) FROM RUNSESSION_PARAMETER')
     runum = cur.fetchall()[0][0]
-    is_global = False
+    is_global = True
     #loop backwards through runs until global run is found
     while is_global == False:
         SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\'CMS.HCAL_LEVEL_1:FM_FULLPATH\'))'
@@ -150,35 +150,40 @@ def get_global_runnumber():
             if "/hcalpro/Global/" in path:
                 is_global = True
         runum -= 1
-    return runum + 1
+    return runum #+ 1
 
 def send_notification(message):
     subprocess.call(["./mailOut.pl", "ciaran_godfrey", "Run Parameters Changed", message])
 
 #main run loop for automatic alarmer
 def local_execute():
-    #previous_runnumber = get_global_runnumber()
-    previous_runnumber = 299020
+    previous_runnumber = get_global_runnumber()
     previous_parameter_values = get_fields(previous_runnumber)
-    count = 0
-    while count < 10:
-        count += 1
-        #recent_runnumber = get_global_runnumber()
-	recent_runnumber = 299025
+    while True:
+        recent_runnumber = get_global_runnumber()
 	if recent_runnumber != previous_runnumber:
             new_parameter_values = get_fields(recent_runnumber)
 	    difference = runinfo_differ(previous_parameter_values, new_parameter_values)
 	    if has_changed:
-		url = "http://hcalmon.cms/cgi-bin/RunInfoDiffer/viewDiffer.py?runnumber1="+str(previous_runnumber)+"&runnumber2="+str(recent_runnumber)
-		difference = "For colored message follow link at bottom of page \n\n"+ difference
+		url = "http://hcalmon.cms/cgi-bin/RunInfoDiffer/viewDiffer.py?runnumber1="+str(previous_runnumber)+"&amp;runnumber2="+str(recent_runnumber)
+		difference = "change between "+str(previous_runnumber)+" and "+str(recent_runnumber)+"\n\n"+"For colored message follow link at bottom of page \n\n"+ difference
                 difference += "\n" + url
 		send_notification(difference)
-		log = open("BotUrlLog.txt","a")
-		log.write("\n"+url)
+		log = open("BotUrlLog.html","r+")
+		lines = log.readlines()
+		log.seek(0)
+		log.truncate()
+		max_lines = 100
+		if len(lines) >= max_lines:
+		    lines.pop(0)
+		lines.append(url+"<br>")
+		for line in lines:
+		    log.write("%s" % line)
 		log.close()
+		previous_runnumber = recent_runnumber
                 previous_parameter_values.clear()
                 previous_parameter_values.update(new_parameter_values)
-        time.sleep(60)
+        time.sleep(20)
 
 #run for web interface
 def remote_execute(runnumber_1, runnumber_2):
