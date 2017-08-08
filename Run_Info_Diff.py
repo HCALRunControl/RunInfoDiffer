@@ -1,6 +1,6 @@
 #!/var/bin/python 
 import sys
-
+import signal
 import cgi
 import cgitb
 
@@ -11,6 +11,15 @@ import difflib
 import os
 from operator import itemgetter
 import subprocess 
+
+import datetime
+import signal
+
+class SigTerm(SystemExit): pass
+
+def sigterm(sig,frm): raise SigTerm
+
+signal.signal(15,sigterm)
 
 W  = '\033[0m'  # white (normal)
 R  = '\033[31m' # red
@@ -152,6 +161,20 @@ def get_global_runnumber():
         runum -= 1
     return runum #+ 1
 
+#check if xdaq parameter has been published
+def is_running(runnumber):
+    SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.LVL0:RC_STATE\'))'
+    cur.execute(SQL)
+    parameter_value = cur.fetchall()
+    print parameter_value
+    states = []
+    for elem in parameter_value:
+	states.append(elem[0].read())
+    if parameter_value != [] and "Running" in states:
+	return True
+    else:
+	return False
+
 def send_notification(message):
     subprocess.call(["./mailOut.pl", "ciaran_godfrey", "Run Parameters Changed", message])
 
@@ -161,7 +184,8 @@ def local_execute():
     previous_parameter_values = get_fields(previous_runnumber)
     while True:
         recent_runnumber = get_global_runnumber()
-	if recent_runnumber != previous_runnumber:
+	if recent_runnumber != previous_runnumber and is_running(recent_runnumber):
+	    #time.sleep(300)
             new_parameter_values = get_fields(recent_runnumber)
 	    difference = runinfo_differ(previous_parameter_values, new_parameter_values)
 	    if has_changed:
@@ -176,7 +200,7 @@ def local_execute():
 		max_lines = 100
 		if len(lines) >= max_lines:
 		    lines.pop(0)
-		lines.append(url+"<br>")
+		lines.append(url+"<br>"+"\n")
 		for line in lines:
 		    log.write("%s" % line)
 		log.close()
@@ -206,12 +230,14 @@ def main(argv):
             runnum1 = argv[1]
             runnum2 = argv[2]
             return remote_execute(runnum1, runnum2)
+    
     except BaseException as e:
         logging.exception(e)
     
     finally:
         cur.close()
         connection.close()
+	print time.strftime("%H:%M:%S")
 
 if __name__ == "__main__":
     main(sys.argv[1:])
