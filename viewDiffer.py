@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import cgi
-import cgitb; cgitb.enable()
+#import cgitb; cgitb.enable()
 import Run_Info_Diff
 
 W  = '\033[0m'  # white (normal)
@@ -40,9 +40,10 @@ form = cgi.FieldStorage()
 
 runnumber1 = form.getvalue('runnumber1')
 runnumber2 = form.getvalue('runnumber2')
+partitions = form.getlist('partition')
 
-if is_an_int(runnumber1) and is_an_int(runnumber2): 
-    body = Run_Info_Diff.main(["remote_run", runnumber1, runnumber2])
+if is_an_int(runnumber1) and is_an_int(runnumber2) and int(runnumber1)>0 and int(runnumber2)>0: 
+    body = Run_Info_Diff.main(["remote_run", runnumber1, runnumber2, partitions])
     if body is not None:
         body_list=body.split("\n")
     else:

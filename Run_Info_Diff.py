@@ -27,28 +27,44 @@ G  = '\033[32m' # green
 
 has_changed = False
 
-fields = []
+#HO_fields = []
+#HF_fields = []
+#HBHEa_fields = []
+#HBHEb_fields = []
+#HBHEc_fields = []
+#LASER_fields = []
 
-#get parameters from file and add them to a list 
-parameters_file = open("diffed_parameters.txt","r")
-for line in parameters_file:
-    if line[0] != "#":
-        categories = line.split(":")
-	if len(categories) > 1:
-	    parameter = categories[0].split(" ")[0]
-            prefixes = categories[1].split("\n")[0].split(" ")
-            for elem in prefixes:
-                if elem != "":
-                    field = 'CMS.' + elem + ':' + parameter
-                    fields.append(field)
 
-parameters_file.close()
+#get parameters from file and add them to a list
+def fill_list(partition):
+    parameter_list = [] 
+    parameters_file = open("diffed_parameters.txt","r")
+    for line in parameters_file:
+        if line[0] != "#":
+            categories = line.split(":")
+	    if len(categories) > 1:
+	        parameter = categories[0].split(" ")[0]
+                prefixes = categories[1].split("\n")[0].split(" ")
+                for elem in prefixes:
+                    if elem != "" and elem == partition:
+                        field = 'CMS.' + elem + ':' + parameter
+                        parameter_list.append(field)
+    parameters_file.close()
+    return parameter_list
 
+HO_fields = fill_list('HCAL_HO')
+HF_fields = fill_list('HCAL_HF')
+HBHEa_fields = fill_list('HCAL_HBHEa')
+HBHEb_fields = fill_list('HCAL_HBHEb')
+HBHEc_fields = fill_list('HCAL_HBHEc')
+LASER_fields = fill_list('HCAL_LASER')
+
+parameter_map = {"HCAL_HO":HO_fields,"HCAL_HF":HF_fields,"HCAL_HBHEa":HBHEa_fields,"HCAL_HBHEb":HBHEb_fields,"HCAL_HBHEc":HBHEc_fields,"HCAL_LASER":LASER_fields}
 
 #query runinfo db to get value of all specified parameters
-def get_fields(runum):
+def get_fields(runum,parameters):
     query_return_values = {}
-    for field in fields:
+    for field in parameters:
          try:
             SQLstatement = 'SELECT value, runsession_parameter_id FROM runsession_string WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\''+field+'\'))'
             cur.execute(SQLstatement)
@@ -147,7 +163,7 @@ def format_diff(parameter, message):
 def get_global_runnumber():
     cur.execute('SELECT MAX(RUNNUMBER) FROM RUNSESSION_PARAMETER')
     runum = cur.fetchall()[0][0]
-    is_global = True
+    is_global = False
     #loop backwards through runs until global run is found
     while is_global == False:
         SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\'CMS.HCAL_LEVEL_1:FM_FULLPATH\'))'
@@ -159,21 +175,41 @@ def get_global_runnumber():
             if "/hcalpro/Global/" in path:
                 is_global = True
         runum -= 1
-    return runum #+ 1
+    return runum + 1
 
 #check if xdaq parameter has been published
 def is_running(runnumber):
     SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.LVL0:RC_STATE\'))'
     cur.execute(SQL)
-    parameter_value = cur.fetchall()
-    print parameter_value
-    states = []
-    for elem in parameter_value:
-	states.append(elem[0].read())
-    if parameter_value != [] and "Running" in states:
-	return True
-    else:
-	return False
+    #parameter_value = cur.fetchall()
+    #print parameter_value
+    #states = []
+    for row in cur:
+	value = row[0].read()
+    	if value == "Running":
+	    return True
+    	else:
+	    continue
+    return False
+
+def get_unmasked_partitions(runnumber):
+    SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.HCAL_LEVEL_1.EMPTY_FMS\'))'
+    cur.execute(SQL)
+    masked_partitions = cur.fetchall()
+    included_partitions = []
+    for key in parameter_map:
+	if key not in masked_partitions:
+	     included_partitions.append(key)
+    return included_partitions
+
+def dict_is_empty(dictionary):
+    for key in dictionary:
+	if dictionary[key] == None:
+	    continue
+	else:
+	    return False
+    return True
+
 
 def send_notification(message):
     subprocess.call(["./mailOut.pl", "ciaran_godfrey", "Run Parameters Changed", message])
@@ -181,37 +217,65 @@ def send_notification(message):
 #main run loop for automatic alarmer
 def local_execute():
     previous_runnumber = get_global_runnumber()
-    previous_parameter_values = get_fields(previous_runnumber)
+    #previous_runnumber = 300898
+    HO_run = previous_runnumber
+    HF_run = previous_runnumber
+    HBHEa_run = previous_runnumber
+    HBHEb_run = previous_runnumber
+    HBHEc_run = previous_runnumber
+    LASER_run = previous_runnumber
+    runnumber_map = {'HCAL_HO':HO_run,'HCAL_HF':HF_run,'HCAL_HBHEa':HBHEa_run,'HCAL_HBHEb':HBHEb_run,'HCAL_HBHEc':HBHEc_run,'HCAL_LASER':LASER_run}
     while True:
         recent_runnumber = get_global_runnumber()
+	#recent_runnumber = 300918
+	print recent_runnumber
 	if recent_runnumber != previous_runnumber and is_running(recent_runnumber):
-	    #time.sleep(300)
-            new_parameter_values = get_fields(recent_runnumber)
-	    difference = runinfo_differ(previous_parameter_values, new_parameter_values)
-	    if has_changed:
-		url = "http://hcalmon.cms/cgi-bin/RunInfoDiffer/viewDiffer.py?runnumber1="+str(previous_runnumber)+"&amp;runnumber2="+str(recent_runnumber)
-		difference = "change between "+str(previous_runnumber)+" and "+str(recent_runnumber)+"\n\n"+"For colored message follow link at bottom of page \n\n"+ difference
-                difference += "\n" + url
-		send_notification(difference)
-		log = open("BotUrlLog.html","r+")
+	    included_partitions = get_unmasked_partitions(recent_runnumber)
+	    partition_runs = {}
+	    partition_diffs = {}
+	    for partition in included_partitions:
+		partition_runs.setdefault(runnumber_map[partition], []).append(partition)
+	    for key in partition_runs:
+		temp_parameters = []
+		for partition in partition_runs[key]:
+		    temp_parameters.extend(parameter_map[partition])
+		partition_diffs[key] = runinfo_differ(get_fields(key, temp_parameters), get_fields(recent_runnumber, temp_parameters))
+	    if not dict_is_empty(partition_diffs):
+		message = "All partitions diffed against last included run\n\n"
+		for key in partition_runs:
+		    message += "Diff of "+', '.join(partition_runs[key])+" between run "+str(key)+" and run "+str(recent_runnumber)+"\n"
+		    if partition_diffs[key] != None:
+			message += partition_diffs[key]
+		BotInfo = []
+		for key in partition_runs:
+		    url = "http://hcalmon.cms/cgi-bin/RunInfoDiffer/viewDiffer.py?runnumber1="+str(key)+"&amp;runnumber2="+str(recent_runnumber)
+		    for partition in partition_runs[key]:
+			url += "&amp;partition="+partition
+		    BotInfo.append(url)
+		#print str(BotInfo)
+	        send_notification(message)
+	        log = open("BotUrlLog.html","r+")
 		lines = log.readlines()
 		log.seek(0)
 		log.truncate()
 		max_lines = 100
 		if len(lines) >= max_lines:
 		    lines.pop(0)
-		lines.append(url+"<br>"+"\n")
+		lines.append(str(BotInfo)+"<br>"+"\n")
 		for line in lines:
 		    log.write("%s" % line)
 		log.close()
-		previous_runnumber = recent_runnumber
-                previous_parameter_values.clear()
-                previous_parameter_values.update(new_parameter_values)
-        time.sleep(20)
+                for key in included_partitions:
+		    runnumber_map[key] = recent_runnumber
+        time.sleep(120)
 
 #run for web interface
-def remote_execute(runnumber_1, runnumber_2):
-    return runinfo_differ(get_fields(runnumber_1), get_fields(runnumber_2))
+def remote_execute(runnumber_1, runnumber_2, used_partitions):
+    parameters = []
+    for key in parameter_map:
+	if key in used_partitions:
+	    parameters.extend(parameter_map[key])
+    return runinfo_differ(get_fields(runnumber_1, parameters), get_fields(runnumber_2, parameters))
 
 #control database conection and decide on run mode
 def main(argv):
@@ -229,7 +293,8 @@ def main(argv):
         elif run_method == "remote_run":
             runnum1 = argv[1]
             runnum2 = argv[2]
-            return remote_execute(runnum1, runnum2)
+	    used_partitions = argv[3]
+            return remote_execute(runnum1, runnum2, used_partitions)
     
     except BaseException as e:
         logging.exception(e)
