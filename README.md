@@ -20,7 +20,8 @@ hcalmon:
 	    BotUrlLog.html
 
 cmshcalweb01:
-    
+    <nfshome0Dir>
+	DifferBot.py 
 ```
 
 Note the files `database_pwd.txt` and `BotUrlLog.html` are listed above but do not appear in the repository. `database_ped.txt` is omitted for security and `BotUrlLog.html` is an empty log file that `Run_Info_Diff.py` will write to.
@@ -40,7 +41,7 @@ python Run_Info_Diff.py remote_run <runnumber 1> <runnumber 2> <whitespace seper
 
 This is used by the web interface to request specific diffs without regard for when they happended.
 
-To run the Bot a tunnel must be made to cms usr:
+To run the Bot a tunnel must be made to cmsusr:
 
 ```
 ssh -f -ND 1080 <your_cmsusr_username>@cmsusr
