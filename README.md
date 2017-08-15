@@ -2,7 +2,7 @@
 
 This code is a tool to monitor parameters in the Runinfo Database to track changes made between global HCAL runs. It has two main interfaces in order to allow for on demand inquiries into changes between any two runs as well providing notification of changes as they happen. The system consists of three major components. The first is a long lived process that is responsible for querying the runinfo database and calculating the resulting diff. The second is a web framework that provides an interface for users to look at the differences between runs. The third is a slackbot that sends a message to slack each time a new change is made. The complete architecture is shown in the diagram below.
 
-INSERT DIAGRAM
+<img src="DifferArchitecture.png" width="600px" />
 
 To run the differ clone this repository into hcalmon. `DifferBot.py` should be moved to `cmshcalweb01`. The structure should be as follows:
 
