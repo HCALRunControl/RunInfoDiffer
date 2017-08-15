@@ -15,25 +15,10 @@ import subprocess
 import datetime
 import signal
 
+#allow finally to run if process is killed
 class SigTerm(SystemExit): pass
-
 def sigterm(sig,frm): raise SigTerm
-
 signal.signal(15,sigterm)
-
-W  = '\033[0m'  # white (normal)
-R  = '\033[31m' # red
-G  = '\033[32m' # green
-
-has_changed = False
-
-#HO_fields = []
-#HF_fields = []
-#HBHEa_fields = []
-#HBHEb_fields = []
-#HBHEc_fields = []
-#LASER_fields = []
-
 
 #get parameters from file and add them to a list
 def fill_list(partition):
@@ -52,6 +37,7 @@ def fill_list(partition):
     parameters_file.close()
     return parameter_list
 
+#parameter list for each partition
 HO_fields = fill_list('HCAL_HO')
 HF_fields = fill_list('HCAL_HF')
 HBHEa_fields = fill_list('HCAL_HBHEa')
@@ -59,6 +45,7 @@ HBHEb_fields = fill_list('HCAL_HBHEb')
 HBHEc_fields = fill_list('HCAL_HBHEc')
 LASER_fields = fill_list('HCAL_LASER')
 
+#map from partition name in parameters to list names
 parameter_map = {"HCAL_HO":HO_fields,"HCAL_HF":HF_fields,"HCAL_HBHEa":HBHEa_fields,"HCAL_HBHEb":HBHEb_fields,"HCAL_HBHEc":HBHEc_fields,"HCAL_LASER":LASER_fields}
 
 #query runinfo db to get value of all specified parameters
@@ -84,10 +71,8 @@ def get_fields(runum,parameters):
 
 #compare sets of values to  get diff between them
 def runinfo_differ(old_parameters, new_parameters):
-    global has_changed
     changed_parameters = {}
     if old_parameters==new_parameters:
-        has_changed = False
         return None
     else:
         message = ""   
@@ -114,7 +99,6 @@ def runinfo_differ(old_parameters, new_parameters):
 	    for parameter in split_by_parameter:
                 if len(diff_with_context)!=0:
                     final_diff += format_diff(parameter + " in " + ", ".join(list(map(lambda x: x.split(":")[0].split(".")[1], split_by_parameter[parameter]))), list(key))
-        has_changed = True
         return final_diff
 
 #remove excess lines that appear in origional diff
@@ -138,22 +122,17 @@ def trim_changes(changes):
 #format message
 def format_diff(parameter, message):
     diff_value = ""
-    #print(parameter + ' changed:\n')
     diff_value += parameter + ' has changed:\n'
     number_of_lines = len(message)
     for i in range(0,10):
         line = message[i]
         if line[0] == "+":
-            #print(G+line+W)
             diff_value += line+"\n"
         elif line[0] == "-":
-            #print(R+line+W)
             diff_value += line+"\n"
         elif line[0] == " ":
-            #print(line)
             diff_value += line+"\n"
 	if (i == 9  and number_of_lines > 10):
-            #print "diff truncated for clarity"
             diff_value += "diff truncated for clarity\n"
         elif (i == number_of_lines-1):
             break
@@ -177,13 +156,10 @@ def get_global_runnumber():
         runum -= 1
     return runum + 1
 
-#check if xdaq parameter has been published
+#check if run has entered Running state
 def is_running(runnumber):
     SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.LVL0:RC_STATE\'))'
     cur.execute(SQL)
-    #parameter_value = cur.fetchall()
-    #print parameter_value
-    #states = []
     for row in cur:
 	value = row[0].read()
     	if value == "Running":
@@ -192,6 +168,7 @@ def is_running(runnumber):
 	    continue
     return False
 
+#get list of included partitions
 def get_unmasked_partitions(runnumber):
     SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.HCAL_LEVEL_1.EMPTY_FMS\'))'
     cur.execute(SQL)
@@ -202,6 +179,7 @@ def get_unmasked_partitions(runnumber):
 	     included_partitions.append(key)
     return included_partitions
 
+#check if all keys in dictionary have no value
 def dict_is_empty(dictionary):
     for key in dictionary:
 	if dictionary[key] == None:
@@ -210,7 +188,7 @@ def dict_is_empty(dictionary):
 	    return False
     return True
 
-
+#send mail
 def send_notification(message):
     subprocess.call(["./mailOut.pl", "ciaran_godfrey", "Run Parameters Changed", message])
 
@@ -218,21 +196,26 @@ def send_notification(message):
 def local_execute():
     previous_runnumber = get_global_runnumber()
     #previous_runnumber = 300898
+    #assign initial runnumber to each partition. Right now this does not look for inclusion so each partition must be included in one run this sees for it to work correctly
     HO_run = previous_runnumber
     HF_run = previous_runnumber
     HBHEa_run = previous_runnumber
     HBHEb_run = previous_runnumber
     HBHEc_run = previous_runnumber
     LASER_run = previous_runnumber
+    #map between partition name in parameter and most recent runnumber
     runnumber_map = {'HCAL_HO':HO_run,'HCAL_HF':HF_run,'HCAL_HBHEa':HBHEa_run,'HCAL_HBHEb':HBHEb_run,'HCAL_HBHEc':HBHEc_run,'HCAL_LASER':LASER_run}
     while True:
+	#look for new global run
         recent_runnumber = get_global_runnumber()
 	#recent_runnumber = 300918
-	print recent_runnumber
+	#print recent_runnumber
+	#only proceed if there is a new global run that has reached the state running
 	if recent_runnumber != previous_runnumber and is_running(recent_runnumber):
 	    included_partitions = get_unmasked_partitions(recent_runnumber)
 	    partition_runs = {}
 	    partition_diffs = {}
+	    #get diff by partition and store them in a dictionary
 	    for partition in included_partitions:
 		partition_runs.setdefault(runnumber_map[partition], []).append(partition)
 	    for key in partition_runs:
@@ -240,7 +223,9 @@ def local_execute():
 		for partition in partition_runs[key]:
 		    temp_parameters.extend(parameter_map[partition])
 		partition_diffs[key] = runinfo_differ(get_fields(key, temp_parameters), get_fields(recent_runnumber, temp_parameters))
+	    #only proceed if changes have been made
 	    if not dict_is_empty(partition_diffs):
+		#build readable message
 		message = "All partitions diffed against last included run\n\n"
 		for key in partition_runs:
 		    message += "Diff of "+', '.join(partition_runs[key])+" between run "+str(key)+" and run "+str(recent_runnumber)+"\n"
@@ -252,8 +237,9 @@ def local_execute():
 		    for partition in partition_runs[key]:
 			url += "&amp;partition="+partition
 		    BotInfo.append(url)
-		#print str(BotInfo)
+		#send mail
 	        send_notification(message)
+		#write to log
 	        log = open("BotUrlLog.html","r+")
 		lines = log.readlines()
 		log.seek(0)
@@ -280,7 +266,7 @@ def remote_execute(runnumber_1, runnumber_2, used_partitions):
 #control database conection and decide on run mode
 def main(argv):
     try:
-	password_file = open("database_pwd","r")
+	password_file = open("database_pwd.txt","r")
         password = password_file.readline().split("\n")[0]
 	password_file.close()
         database = "cms_hcl_runinfo/%s@cms_rcms" % password
