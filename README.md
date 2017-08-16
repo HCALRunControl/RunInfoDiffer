@@ -24,7 +24,7 @@ cmshcalweb01:
 	DifferBot.py 
 ```
 
-Note the files `database_pwd.txt` and `BotUrlLog.html` are listed above but do not appear in the repository. `database_ped.txt` is omitted for security and `BotUrlLog.html` is an empty log file that `Run_Info_Diff.py` will write to.
+Note the files `database_pwd.txt` and `BotUrlLog.html` are listed above but do not appear in the repository. `database_pwd.txt` is omitted for security and `BotUrlLog.html` is an empty log file that `Run_Info_Diff.py` will write to.
 
 The core file of this system is `Run_Info_Diff.py`. It has two seperate modes it can run in based on the command line arguments passed in. The functionality of querying the database and calculating diffs is used by both modes. The first mode is a long lived mode which can be activated by running the command below.
 
