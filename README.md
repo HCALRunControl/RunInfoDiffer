@@ -41,10 +41,10 @@ python Run_Info_Diff.py remote_run <runnumber 1> <runnumber 2> <whitespace seper
 
 This is used by the web interface to request specific diffs without regard for when they happended.
 
-To run the Bot a tunnel must be made to cmsusr:
+To run the Bot a tunnel must be made to cmsusr. To run as daqowner you must use sudo to run the command in a new shell. These are accomplished by the following:
 
 ```
 ssh -f -ND 1080 <your_cmsusr_username>@cmsusr
-nohup python -u DifferBot.py > BotLog.txt &
+sudo -u daqowner sh -c 'nohup python -u DifferBot.py > BotLog.txt &'
 ```
 
