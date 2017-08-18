@@ -1,12 +1,8 @@
 #!/usr/bin/python
 
 import cgi
-#import cgitb; cgitb.enable()
+import cgitb; cgitb.enable()
 import Run_Info_Diff
-
-W  = '\033[0m'  # white (normal)
-R  = '\033[31m' # red
-G  = '\033[32m' # green
 
 def getHeader():
     header = """
@@ -36,41 +32,35 @@ def is_an_int(data):
 	return False
 
 
-form = cgi.FieldStorage()
-
-runnumber1 = form.getvalue('runnumber1')
-runnumber2 = form.getvalue('runnumber2')
-partitions = form.getlist('partition')
-
-if is_an_int(runnumber1) and is_an_int(runnumber2) and int(runnumber1)>0 and int(runnumber2)>0: 
-    body = Run_Info_Diff.main(["remote_run", runnumber1, runnumber2, partitions])
-    if body is not None:
-        body_list=body.split("\n")
+def color_print(text):
+    if text == "":
+        pass
+    elif text[0] == "+":
+        print "<span style=\"color:green;\">"+text+"</span>"+"<br>"
+    elif text[0] == "-":
+        print "<span style=\"color:red;\">"+text+"</span>"+"<br>"
     else:
-        body_list = ["Diff was empty, all queried parameters are unchanged"]
+        print text+"<br>"
 
-    print "Content-type: text/html\n\n"
-    print getHeader()
-    print "<span style=\"font-size:250%;\">Diff of run " + str(runnumber1) + " and run " + str(runnumber2) + "</span><br><br>"
-    for line in body_list:
-        if line == "":
-            continue
-        elif line[0] == "+":
-            print "<span style=\"color:green;\">"+line+"</span>"+"<br>"
-        elif line[0] == "-":
-            print "<span style=\"color:red;\">"+line+"</span>"+"<br>"
-        else:
-            if line == "diff truncated for clarity":
-	        print line+"<br><br>"
-	    else:
-	        print line+"<br>" 
 
-    print getFooter()
-else:
-    print "Content-type: text/html\n\n"
-    print getHeader()
-    print "Please don't do that it's rude"
-    print getFooter()
+def print_form(runnumber1, runnumber2, partitions, link, label):
+    print "<form action="+link+" method='get' type='submit'>"
+    print "<div><input type='hidden' name='runnumber1' value="+str(runnumber1)+"></div>"
+    print "<div><input type='hidden' name='runnumber2' value="+str(runnumber2)+"></div>"
+    if 'HCAL_HO' in partitions:
+        print "<div><input type='hidden' name='partition' value='HCAL_HO'></div>"
+    if 'HCAL_HF' in partitions:
+        print "<div><input type='hidden' name='partition' value='HCAL_HF'></div>"
+    if 'HCAL_HBHEa' in partitions:
+        print "<div><input type='hidden' name='partition' value='HCAL_HBHEa'></div>"
+    if 'HCAL_HBHEb' in partitions:
+        print "<div><input type='hidden' name='partition' value='HCAL_HBHEb'></div>"
+    if 'HCAL_HBHEc' in partitions:
+        print "<div><input type='hidden' name='partition' value='HCAL_HBHEc'></div>"
+    if 'HCAL_LASER' in partitions:
+        print "<div><input type='hidden' name='partition' value='HCAL_LASER'></div>"
+    print "<input type='submit' value='"+label+"' />"
+    print "</form>"
 
 
 
