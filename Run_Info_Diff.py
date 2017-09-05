@@ -43,7 +43,7 @@ HF_fields = fill_list('HCAL_HF')
 HBHEa_fields = fill_list('HCAL_HBHEa')
 HBHEb_fields = fill_list('HCAL_HBHEb')
 HBHEc_fields = fill_list('HCAL_HBHEc')
-LASER_fields = fill_list('HCAL_LASER')
+LASER_fields = fill_list('HCAL_Laser')
 
 #map from partition name in parameters to list names
 parameter_map = {"HCAL_HO":HO_fields,"HCAL_HF":HF_fields,"HCAL_HBHEa":HBHEa_fields,"HCAL_HBHEb":HBHEb_fields,"HCAL_HBHEc":HBHEc_fields,"HCAL_LASER":LASER_fields}
@@ -156,6 +156,24 @@ def get_global_runnumber():
         runum -= 1
     return runum + 1
 
+def is_HCAL_in(runum):
+    SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\'CMS.LVL0:HCAL\'))'
+    cur.execute(SQL)
+    hcal_status = cur.fetchall()
+    if hcal_status == "In":
+        return True
+    else:
+        return False
+
+def is_HF_in(runum):
+    SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\'CMS.LVL0:HF\'))'
+    cur.execute(SQL)
+    hcal_status = cur.fetchall()
+    if hcal_status == "In":
+        return True
+    else:
+        return False
+
 #check if run has entered Running state
 def is_running(runnumber):
     SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.LVL0:RC_STATE\'))'
@@ -213,6 +231,18 @@ def local_execute():
         #only proceed if there is a new global run that has reached the state running
         if recent_runnumber != previous_runnumber and is_running(recent_runnumber):
             included_partitions = get_unmasked_partitions(recent_runnumber)
+            #check if HCAL is out
+            #when HCAL and HF are merged remove explicit references to HF
+            #this shoulf simply remove everything if HCAL is out
+            if not is_HCAL_in(recent_runnumber):
+                del included_partitions[:]
+                if is_HF_in(recent_runnumber):
+                    included_partitions.append("HCAL_HF")
+                else:
+                    continue
+            else:
+                if not is_HF_in(recent_runnumber):
+                    included_partitions.remove("HCAL_HF")
             partition_runs = {}
             partition_diffs = {}
             #get diff by partition and store them in a dictionary
@@ -238,7 +268,7 @@ def local_execute():
                         url += "&amp;partition="+partition
                     BotInfo.append(url)
                 #send mail
-                send_notification(message)
+                #send_notification(message)
                 #write to log
                 log = open("BotUrlLog.html","r+")
                 lines = log.readlines()

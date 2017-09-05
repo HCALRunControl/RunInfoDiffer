@@ -35,10 +35,10 @@ if viewDiffer.is_an_int(runnumber1) and viewDiffer.is_an_int(runnumber2) and int
         elif "has changed" in line:
             viewDiffer.color_print(line)
             counter = 0
-        elif counter < 10:
+        elif counter < 20:
             viewDiffer.color_print(line)
             counter += 1
-        elif counter == 10:
+        elif counter == 20:
             print "diff truncated for clarity<br><br>"
             counter += 1
 
