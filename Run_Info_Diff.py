@@ -159,7 +159,8 @@ def get_global_runnumber():
 def is_HCAL_in(runum):
     SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\'CMS.LVL0:HCAL\'))'
     cur.execute(SQL)
-    hcal_status = cur.fetchall()
+    hcal_status = cur.fetchall()[0][0].read()
+    print hcal_status
     if hcal_status == "In":
         return True
     else:
@@ -168,7 +169,7 @@ def is_HCAL_in(runum):
 def is_HF_in(runum):
     SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runum)+' AND name=\'CMS.LVL0:HF\'))'
     cur.execute(SQL)
-    hcal_status = cur.fetchall()
+    hcal_status = cur.fetchall()[0][0].read()
     if hcal_status == "In":
         return True
     else:
@@ -188,14 +189,24 @@ def is_running(runnumber):
 
 #get list of included partitions
 def get_unmasked_partitions(runnumber):
-    SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.HCAL_LEVEL_1.EMPTY_FMS\'))'
-    cur.execute(SQL)
-    masked_partitions = cur.fetchall()
-    included_partitions = []
     for key in parameter_map:
-        if key not in masked_partitions:
-            included_partitions.append(key)
-    return included_partitions
+        if key == "HCAL_HF":
+            continue
+        SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.'+key+':EMPTY_FMS\'))'
+        cur.execute(SQL)
+        masked = cur.fetchall()
+        if masked == []:
+            continue
+        masked_value = masked[0][0].read()
+        masked_partitions = masked_value.split("[")[1].split("]")[0].split(",")
+        included_partitions = []
+        for key in parameter_map:
+            if key not in masked_partitions:
+                included_partitions.append(key)
+        included_partitions.append("HCAL_HF")
+        return included_partitions
+    all_partitions = list(parameter_map)
+    return all_partitions
 
 #check if all keys in dictionary have no value
 def dict_is_empty(dictionary):
@@ -213,7 +224,7 @@ def send_notification(message):
 #main run loop for automatic alarmer
 def local_execute():
     previous_runnumber = get_global_runnumber()
-    #previous_runnumber = 300898
+    #previous_runnumber = 300918
     #assign initial runnumber to each partition. Right now this does not look for inclusion so each partition must be included in one run this sees for it to work correctly
     HO_run = previous_runnumber
     HF_run = previous_runnumber
@@ -226,9 +237,10 @@ def local_execute():
     while True:
         #look for new global run
         recent_runnumber = get_global_runnumber()
-        #recent_runnumber = 300918
+        #recent_runnumber = 300919
         #print recent_runnumber
         #only proceed if there is a new global run that has reached the state running
+        #print get_unmasked_partitions(recent_runnumber)
         if recent_runnumber != previous_runnumber and is_running(recent_runnumber):
             included_partitions = get_unmasked_partitions(recent_runnumber)
             #check if HCAL is out
