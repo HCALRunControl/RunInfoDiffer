@@ -196,7 +196,7 @@ def get_unmasked_partitions(runnumber):
         if masked == []:
             continue
         masked_value = masked[0][0].read()
-        masked_partitions = masked_value.split("[")[1].split("]")[0].split(",")
+        masked_partitions = masked_value.split("[")[1].split("]")[0].split(", ")
         included_partitions = []
         for key in parameter_map:
             if key not in masked_partitions:
