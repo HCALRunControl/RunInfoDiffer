@@ -190,8 +190,6 @@ def is_running(runnumber):
 #get list of included partitions
 def get_unmasked_partitions(runnumber):
     for key in parameter_map:
-        if key == "HCAL_HF":
-            continue
         SQL = 'SELECT value FROM runsession_string  WHERE runsession_parameter_id= ANY (SELECT id FROM runsession_parameter WHERE (runnumber='+str(runnumber)+' AND name=\'CMS.'+key+':EMPTY_FMS\'))'
         cur.execute(SQL)
         masked = cur.fetchall()
@@ -203,7 +201,6 @@ def get_unmasked_partitions(runnumber):
         for key in parameter_map:
             if key not in masked_partitions:
                 included_partitions.append(key)
-        included_partitions.append("HCAL_HF")
         return included_partitions
     all_partitions = list(parameter_map)
     return all_partitions
@@ -245,16 +242,9 @@ def local_execute():
             included_partitions = get_unmasked_partitions(recent_runnumber)
             #check if HCAL is out
             #when HCAL and HF are merged remove explicit references to HF
-            #this shoulf simply remove everything if HCAL is out
+            #this should simply remove everything if HCAL is out
             if not is_HCAL_in(recent_runnumber):
                 del included_partitions[:]
-                if is_HF_in(recent_runnumber):
-                    included_partitions.append("HCAL_HF")
-                else:
-                    continue
-            else:
-                if not is_HF_in(recent_runnumber):
-                    included_partitions.remove("HCAL_HF")
             partition_runs = {}
             partition_diffs = {}
             #get diff by partition and store them in a dictionary
