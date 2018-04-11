@@ -40,13 +40,14 @@ def fill_list(partition):
 #parameter list for each partition
 HO_fields = fill_list('HCAL_HO')
 HF_fields = fill_list('HCAL_HF')
-HBHEa_fields = fill_list('HCAL_HBHEa')
-HBHEb_fields = fill_list('HCAL_HBHEb')
-HBHEc_fields = fill_list('HCAL_HBHEc')
+HBHE_fields = fill_list('HCAL_HBHE')
+#HBHEa_fields = fill_list('HCAL_HBHEa')
+#HBHEb_fields = fill_list('HCAL_HBHEb')
+#HBHEc_fields = fill_list('HCAL_HBHEc')
 LASER_fields = fill_list('HCAL_Laser')
 
 #map from partition name in parameters to list names
-parameter_map = {"HCAL_HO":HO_fields,"HCAL_HF":HF_fields,"HCAL_HBHEa":HBHEa_fields,"HCAL_HBHEb":HBHEb_fields,"HCAL_HBHEc":HBHEc_fields,"HCAL_LASER":LASER_fields}
+parameter_map = {"HCAL_HO":HO_fields,"HCAL_HF":HF_fields,"HCAL_HBHE":HBHE_fields,"HCAL_LASER":LASER_fields}
 
 #query runinfo db to get value of all specified parameters
 def get_fields(runum,parameters):
@@ -203,7 +204,7 @@ def get_unmasked_partitions(runnumber):
                 included_partitions.append(key)
         return included_partitions
     all_partitions = list(parameter_map)
-    return all_partitions
+    return []
 
 #check if all keys in dictionary have no value
 def dict_is_empty(dictionary):
@@ -225,12 +226,13 @@ def local_execute():
     #assign initial runnumber to each partition. Right now this does not look for inclusion so each partition must be included in one run this sees for it to work correctly
     HO_run = previous_runnumber
     HF_run = previous_runnumber
-    HBHEa_run = previous_runnumber
-    HBHEb_run = previous_runnumber
-    HBHEc_run = previous_runnumber
+    HBHE_run = previous_runnumber
+    #HBHEa_run = previous_runnumber
+    #HBHEb_run = previous_runnumber
+    #HBHEc_run = previous_runnumber
     LASER_run = previous_runnumber
     #map between partition name in parameter and most recent runnumber
-    runnumber_map = {'HCAL_HO':HO_run,'HCAL_HF':HF_run,'HCAL_HBHEa':HBHEa_run,'HCAL_HBHEb':HBHEb_run,'HCAL_HBHEc':HBHEc_run,'HCAL_LASER':LASER_run}
+    runnumber_map = {'HCAL_HO':HO_run,'HCAL_HF':HF_run,'HCAL_HBHE':HBHE_run,'HCAL_LASER':LASER_run}
     while True:
         #look for new global run
         recent_runnumber = get_global_runnumber()
