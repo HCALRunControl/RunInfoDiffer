@@ -102,6 +102,50 @@ def runinfo_differ(old_parameters, new_parameters):
                     final_diff += format_diff(parameter + " in " + ", ".join(list(map(lambda x: x.split(":")[0].split(".")[1], split_by_parameter[parameter]))), list(key))
         return final_diff
 
+#Get html diff
+def runinfo_differ_html(old_parameters, new_parameters):
+    changed_parameters = []
+    if old_parameters==new_parameters:
+        return None
+    else:
+        message = ""   
+        for key in old_parameters:
+            if old_parameters[key]==new_parameters[key]:
+                continue
+            else:
+                old_string = str(old_parameters[key]).strip().splitlines()
+                new_string = str(new_parameters[key]).strip().splitlines()
+                #get diff between two strings
+                d=difflib.Differ()
+                changes = list(d.compare(old_string, new_string))
+                diff_with_context = trim_changes(changes)
+
+                htmlDiffer = difflib.HtmlDiff(wrapcolumn=90)
+                body       = htmlDiffer.make_table(old_string, new_string, "", "", True,3)
+                #body_list  = difflib.context_diff(old_string,new_string,"old","new","","",5)
+                #body = ""
+                #for line in body_list:
+                #    body += "<br>"+line+"</br>"
+
+                diffDict = {}
+                diffDict['htmldiff']= body
+                diffDict['ListOfPartitions']= [key.split(":")[0].replace("CMS.","")]
+                diffDict['pamName']        = key.split(":")[1]
+                diffDict['lineDiff']        = tuple(diff_with_context)
+                foundSameDiff = False
+                for diffs in changed_parameters:
+                    if diffDict['lineDiff']==diffs['lineDiff']:
+                        foundSameDiff=True
+                        diffs['ListOfPartitions'].extend( diffDict['ListOfPartitions'])
+                if not foundSameDiff:
+                    changed_parameters.append(diffDict) 
+
+        #changedparameters = {diff:[partitions with diff],...}
+        for diffs in changed_parameters:
+            message += "<br>"+diffs['pamName'] +" changed in "+ str(diffs['ListOfPartitions']) +"</br>"
+            message +=diffs['htmldiff']
+        return message 
+
 #remove excess lines that appear in origional diff
 def trim_changes(changes):
     trimmed = []
@@ -290,19 +334,22 @@ def local_execute():
         time.sleep(120)
 
 #run for web interface
-def remote_execute(runnumber_1, runnumber_2, used_partitions):
+def remote_execute(runnumber_1, runnumber_2, used_partitions,isHtml=False):
     parameters = []
     for key in parameter_map:
         if key in used_partitions:
             parameters.extend(parameter_map[key])
-    return runinfo_differ(get_fields(runnumber_1, parameters), get_fields(runnumber_2, parameters))
+    if isHtml:
+        return runinfo_differ_html(get_fields(runnumber_1, parameters), get_fields(runnumber_2, parameters))
+    else:
+        return runinfo_differ(get_fields(runnumber_1, parameters), get_fields(runnumber_2, parameters))
 
 #control database conection and decide on run mode
 def main(argv):
     try:
-	password_file = open("database_pwd.txt","r")
+        password_file = open("database_pwd.txt","r")
         password = password_file.readline().split("\n")[0]
-	password_file.close()
+        password_file.close()
         database = "cms_hcl_runinfo/%s@cms_rcms" % password
         connection = cx_Oracle.connect(database)
         global cur
@@ -313,8 +360,14 @@ def main(argv):
         elif run_method == "remote_run":
             runnum1 = argv[1]
             runnum2 = argv[2]
-	    used_partitions = argv[3]
+            used_partitions = argv[3]
             return remote_execute(runnum1, runnum2, used_partitions)
+        elif run_method == "remote_run_html":
+            runnum1 = argv[1]
+            runnum2 = argv[2]
+            used_partitions = argv[3]
+            return remote_execute(runnum1, runnum2, used_partitions,True)
+ 
     
     except BaseException as e:
         logging.exception(e)
@@ -322,7 +375,7 @@ def main(argv):
     finally:
         cur.close()
         connection.close()
-	print time.strftime("%H:%M:%S")
+    print time.strftime("%H:%M:%S")
 
 if __name__ == "__main__":
     main(sys.argv[1:])
