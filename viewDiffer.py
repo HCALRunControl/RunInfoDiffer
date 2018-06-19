@@ -59,8 +59,8 @@ def print_form(runnumber1, runnumber2, partitions, link, label):
         print "<div><input type='hidden' name='partition' value='HCAL_HBHEb'></div>"
     if 'HCAL_HBHEc' in partitions:
         print "<div><input type='hidden' name='partition' value='HCAL_HBHEc'></div>"
-    if 'HCAL_LASER' in partitions:
-        print "<div><input type='hidden' name='partition' value='HCAL_LASER'></div>"
+    if 'HCAL_Laser' in partitions:
+        print "<div><input type='hidden' name='partition' value='HCAL_Laser'></div>"
     print "<input type='submit' value='"+label+"' />"
     print "</form>"
 
