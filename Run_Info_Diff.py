@@ -44,10 +44,10 @@ HBHE_fields = fill_list('HCAL_HBHE')
 #HBHEa_fields = fill_list('HCAL_HBHEa')
 #HBHEb_fields = fill_list('HCAL_HBHEb')
 #HBHEc_fields = fill_list('HCAL_HBHEc')
-LASER_fields = fill_list('HCAL_Laser')
+Laser_fields = fill_list('HCAL_Laser')
 
 #map from partition name in parameters to list names
-parameter_map = {"HCAL_HO":HO_fields,"HCAL_HF":HF_fields,"HCAL_HBHE":HBHE_fields,"HCAL_LASER":LASER_fields}
+parameter_map = {"HCAL_HO":HO_fields,"HCAL_HF":HF_fields,"HCAL_HBHE":HBHE_fields,"HCAL_Laser":Laser_fields}
 
 #query runinfo db to get value of all specified parameters
 def get_fields(runum,parameters):
@@ -274,9 +274,9 @@ def local_execute():
     #HBHEa_run = previous_runnumber
     #HBHEb_run = previous_runnumber
     #HBHEc_run = previous_runnumber
-    LASER_run = previous_runnumber
+    Laser_run = previous_runnumber
     #map between partition name in parameter and most recent runnumber
-    runnumber_map = {'HCAL_HO':HO_run,'HCAL_HF':HF_run,'HCAL_HBHE':HBHE_run,'HCAL_LASER':LASER_run}
+    runnumber_map = {'HCAL_HO':HO_run,'HCAL_HF':HF_run,'HCAL_HBHE':HBHE_run,'HCAL_Laser':Laser_run}
     while True:
         #look for new global run
         recent_runnumber = get_global_runnumber()

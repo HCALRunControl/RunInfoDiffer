@@ -13,7 +13,7 @@ partitions = form.getlist('partition')
 
 #runnumber1 = 301276
 #runnumber2 = 301279
-#partitions = ["HCAL_HO", "HCAL_HF", "HCAL_HBHEa", "HCAL_HBHEb", "HCAL_HBHEc", "HCAL_LASER"]
+#partitions = ["HCAL_HO", "HCAL_HF", "HCAL_HBHEa", "HCAL_HBHEb", "HCAL_HBHEc", "HCAL_Laser"]
 
 
 if viewDiffer.is_an_int(runnumber1) and viewDiffer.is_an_int(runnumber2) and int(runnumber1)>0 and int(runnumber2)>0:
